@@ -1,4 +1,4 @@
- 
+
 # x is a cumulative table of 0s and 1s
 woe <- function(cume, totals, adj=0.50) {
   log( ((cume[,1] + adj)/totals[1]) / ((cume[,2] + adj)/totals[2]) )
@@ -26,6 +26,6 @@ find_best_split <- function(cume, tots) {
 split_at_index <- function(mat, i) {
   s <- seq.int(i)
   ## return left and right and respective totals in a list
-  list(left = mat[s,], right = mat[-s,])
+  list(left = mat[s,,drop=FALSE], right = mat[-s,,drop=FALSE])
 }
 
