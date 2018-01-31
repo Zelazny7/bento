@@ -1,28 +1,67 @@
 ## Weight of evidence based discretization
 
+data(titanic, package="onyx")
 
-## test data
-x <- rnorm(1e6)
-y <- rbinom(x, 1, pnorm(x))
-brks <- hist(x, plot=FALSE, breaks = 100)
+x <- titanic$Fare
+y <- titanic$Survived
 
-x2 <- brks$breaks[findInterval(x, brks$breaks)]
+## discretize based on percentile? yes
+q <- unique(sort(quantile(x, seq(0, 1, 0.01), names = FALSE)))
+x2 <- q[findInterval(x, q)]
+
 tbl <- table(x2, y)
+tbl <- table(x, y)
 
 cume <- apply(tbl, 2, function(x) cumsum(x))
 tots <- colSums(tbl)
 decum <- t(tots - t(cume))
 
 
-iv_left  <- iv(cume, tots, woe(cume, tots))
-iv_right <- iv(decum, tots, woe(decum, tots))
+recurse <- function(tbl, vals) {
+  # print("recursing")
+  ## base cases
+  
+  ## calculate stuff
+  # browser()
+  cume  <- apply(tbl, 2, function(x) cumsum(x))
+  tots  <- colSums(tbl)
+  decum <- t(tots - t(cume))
+  
+  ## calculate more stuff
+  woe_left  <- woe(cume, tots)
+  woe_right <- woe(decum, tots)
+  
+  iv_left  <- iv(cume, tots, woe_left)
+  iv_right <- iv(decum, tots, woe_right)
+  iv_total <- iv_left + iv_right
+  
+  ## Terminal conditions
+  f <- switch(mono + 2, woe_left < woe_right, TRUE, woe_left > woe_right) &
+    rowSums(cume)  > min.cnt &
+    rowSums(decum) > min.cnt &
+    cume[,'1']  > min.res & 
+    decum[,'1'] > min.res &
+    iv_total > min.iv
+  
+  ## no conditions met
+  if (!any(f)) return()
+  
+  ## else split and recurse
+  # i <- which.max(iv_total[f])
+  i <- seq_along(f)[f][which.max(iv_total[f])]
+  #print(i)
+  # print(i)
+  
+  result <- split_at_index(tbl, i)
+  print(result$left)
+  
+  c(vals[i],
+    recurse(result$left, vals[1:i]),
+    recurse(result$right, vals[-(1:i)]))
+}
 
-which.max(rowSums(cbind(iv_left, iv_right)))
-
-
-i <- find_best_split(cume, tots)
-
-tmp <- split_at_index(cume, i)
-l1 <- do.call(find_best_split, tmp$left)
-r1 <- do.call(find_best_split, tmp$right)
-
+min.cnt = 50
+min.res = 10
+min.iv = 0.001
+mono = 0
+res <- recurse(tbl, vals=sort(unique(x))) ## what to return? ### TODO: fix this thing here
