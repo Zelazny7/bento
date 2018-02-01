@@ -50,10 +50,22 @@ recurse <- function(tbl, vals, nbins={e=new.env();e$cnt=2;e}) {
 
   ## increment bin count
   result <- split_at_index(tbl, i)
+  
+  ## alternate depending on the count
+  
+  if (nbins$cnt %% 2 == 0) {
 
   c(vals[i],
     recurse(result$left, vals[1:i], nbins=nbins),
     recurse(result$right, vals[-(1:i)], nbins=nbins))
+    
+  } else {
+  
+  c(vals[i],
+    recurse(result$right, vals[-(1:i)], nbins=nbins),
+    recurse(result$left, vals[1:i], nbins=nbins))
+    
+  }
 }
 
 
@@ -65,6 +77,17 @@ e <- new.env()
 # onyx::bin(data.frame(x), y)
 
 
+x <- matrix(rnorm(1e6), 1e4, 1e2)
+y <- rbinom(nrow(x), 1, 0.2)
 
-r1 <- bin_by_information_value(x, y, min.cnt = 50, min.res = 10, min.iv = 0.01, mono = 0, max.bin = 10, eps = NULL)
+r1 <- bin_by_information_value(x, y, min.cnt = 50, min.res = 10, min.iv = 0.01, mono = 0, max.bin = 15, eps = NULL)
+
+binned <- apply(x, 2, bin_by_information_value, y, min.cnt = 50, min.res = 10, min.iv = 0.01, mono = 0, max.bin = 10, eps = 0.01)
+
+
+r1 <- bin_by_information_value(x[,1], y, min.cnt = 50, min.res = 10, min.iv = 0.01, mono = 0, max.bin = 10, eps = 0.1)
+
+
+
+
 

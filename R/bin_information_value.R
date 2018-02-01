@@ -10,6 +10,7 @@ bin_by_information_value <- function(x, y, min.cnt=25, min.res=10, min.iv=0.001,
   }
 
   recurse <- function(tbl, vals, nbins={e=new.env();e$cnt=2;e}) {
+    #browser()
     if (nrow(tbl) == 1 | nbins$cnt > max.bin) return()
 
     ## aggregate
@@ -34,7 +35,7 @@ bin_by_information_value <- function(x, y, min.cnt=25, min.res=10, min.iv=0.001,
       iv_total > min.iv
 
     ## no conditions met
-    if (!any(f)) return()
+    if (!isTRUE(any(f))) return()
 
     ## find the best split position
     i <- seq_along(f)[f][which.max(iv_total[f])]
@@ -43,12 +44,25 @@ bin_by_information_value <- function(x, y, min.cnt=25, min.res=10, min.iv=0.001,
     ## increment bin count
     result <- split_at_index(tbl, i)
 
-    c(vals[i],
-      recurse(result$left, vals[1:i], nbins=nbins),
-      recurse(result$right, vals[-(1:i)], nbins=nbins))
+    if (nbins$cnt %% 2 == 0) {
+      c(vals[i],
+        recurse(result$left, vals[1:i], nbins=nbins),
+        recurse(result$right, vals[-(1:i)], nbins=nbins))
+      
+    } else {
+      
+      c(vals[i],
+        recurse(result$right, vals[-(1:i)], nbins=nbins),
+        recurse(result$left, vals[1:i], nbins=nbins))
+    }
   }
 
-  sort(recurse(tbl, vals=q))
+  result <- recurse(tbl, vals=q)
+  if(!is.null(result)) {
+    return(sort(result))
+  } else {
+    NULL
+  }
 
 }
 
