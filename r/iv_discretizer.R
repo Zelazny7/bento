@@ -1,40 +1,59 @@
 #' @include opts.R
 
+#' @title Information Value Discretizer
+#' @rdname Information_Value_Discretizer_class
+#' @export Information_Value_Discretizer
 Information_Value_Discretizer <- setRefClass("Information_Value_Discretizer", fields=c(
     opts = "iv_opts",
     tbls = "list",
     vals = "numeric",
-    same = "logical"),
+    same = "logical",
+    breaks = "numeric"
+  ),
   methods = list(initialize = function(opts) {
     .self$opts <<- opts
+    .self$breaks <- c(-Inf, Inf)
   })
 )
 
-
-
 Information_Value_Discretizer$methods(
-  tabulate_ = function(x, y) {
+  tabulate_ = function(x, y, w=rep(1, length(x))) {
+    
+    f  <- !is.na(x)
+    x_ <- x[f]
+    y_ <- factor(y[f])
+    w_ <- w[f]
 
-    f <- !is.na(x)
-    x <- x[f]
-    y <- factor(y[f])
-
-    stopifnot(!any(is.na(y)))
-    stopifnot(identical(length(levels(y)), 2L))
+    stopifnot(!any(is.na(y_)))
+    stopifnot(identical(length(levels(y_)), 2L))
 
     same <<- FALSE
-    q <- unique(sort(quantile(x, seq(0, 1, opts$epsilon), names = FALSE)))
-    vals <<- q
-    tbls <<- list(mjollnir::table2(q[findInterval(x, q, all.inside = FALSE, rightmost.closed = TRUE)], y))
+    q <- unique(sort(quantile(x_, seq(0, 1, opts$epsilon), names = FALSE)))
+    x2 <- q[findInterval(x_, q)]
+    tbls <<- list(fast_table(x2, y_, w_))
+    vals <<- sort(unique(x2))
 
   })
 
 Information_Value_Discretizer$methods(
   fit = function(x, y) {
+    "Discretize a numeric variable using information value
+      \\subsection{Parameters}{
+        \\itemize{
+          \\item{\\code{x} numeric field to discretize.}
+          \\item{\\code{y} factor with 2 levels used to guide discretization.}
+        }
+      }
+      \\subsection{Value}{
+        Modifies the object in place to generate break intervals.
+      }
+    "
 
     tabulate_(x, y) ## create the crosstab used for discretizing
 
-    break_and_heal_()
+    .self$break_and_heal_()
+    
+    .self$generate_breaks_()
 
   })
 
@@ -45,8 +64,8 @@ Information_Value_Discretizer$methods(
       ## record what bins look like here?
       # print("breaking and healing")
       old <- tbls
-      break_()
-      heal_(iv.dec.max)
+      .self$break_()
+      .self$heal_(iv.dec.max)
 
       if (identical(old, tbls)) {
         same <<- TRUE
@@ -63,8 +82,17 @@ Information_Value_Discretizer$methods(
 
   })
 
-  #' @param i index at which to split
-  #' @param tbl two-way table summarizing an independent vector and a 0/1 factor
+Information_Value_Discretizer$methods(generate_breaks_ = function() {
+  
+  if (identical(length(tbls), 1L)) return(c(-Inf, Inf))
+  v <- vals[cumsum(sapply(head(tbls, -1), nrow)) + 1]
+  breaks <<- c(-Inf, v, Inf)
+  
+})
+
+
+# @param i index at which to split
+# @param tbl two-way table summarizing an independent vector and a 0/1 factor
 Information_Value_Discretizer$methods(
   evaluate_split_ = function(i, tbl) {
 
@@ -114,7 +142,7 @@ Information_Value_Discretizer$methods(
 
 Information_Value_Discretizer$methods(
   break_ = function() {
-
+    
     iv_current <- calc_iv_()
 
     best <- list(iv=-Inf, tbls=NULL, i=NULL)

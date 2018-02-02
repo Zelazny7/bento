@@ -22,11 +22,11 @@ validate.iv_opts <- function(opts) {
 
 setOldClass(Classes = "iv_opts")
 
+#' @export
 discretizer_options <- function(type=c("iv","var"), ...) {
   type <- match.arg(type)
-  # browser()
+  
   opts <- list(...)
-
   class(opts) <- paste0(type, "_opts")
 
   validate(opts)

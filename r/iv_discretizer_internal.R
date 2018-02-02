@@ -34,3 +34,7 @@ iv_list_of_tables_ <- function(l) {
   sum(iv_(z))
 }
 
+
+fast_table <- function(x, y, w=rep(1, length(x))) {
+  cpp_table(as.numeric(x), as.numeric(y), as.numeric(w))
+}
