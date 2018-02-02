@@ -10,3 +10,10 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Suggests: testthat
+Collate: 
+    'bin_information_value.R'
+    'in.R'
+    'opts.R'
+    'information_value_discretizer.R'
+    'information_value_discretizer_internal.R'
+    'woe.R'
