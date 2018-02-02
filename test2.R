@@ -3,7 +3,7 @@ pct_ <- function(vec, adj=0.50) {
   (vec + adj)/sum(vec)
 }
 
-woe_ <- function(pct1, pct2, adj=0.50) {
+woe_ <- function(pct1, pct2) {
   log(pct1 / pct2)
 }
 
@@ -103,7 +103,7 @@ Box <- setRefClass("Box", fields=c(
     same <<- FALSE
     q <- unique(sort(quantile(x, seq(0, 1, eps), names = FALSE)))
     vals <<- q
-    tbls <<- list(mjollnir::table2(q[findInterval(x, q, all.inside = FALSE)], y))
+    tbls <<- list(table(q[findInterval(x, q, all.inside = FALSE)], y))
 
   },
 
@@ -131,32 +131,38 @@ Box <- setRefClass("Box", fields=c(
   )
 )
 
+### Crack the bins into smaller bins
 Box$methods(crack = function(iv.inc.min=0.001, min.cnt=25, min.res=10, mono=0) {
 
-    iv_current <- iv_list_of_tables_(tbls)
+  iv_current <- iv_list_of_tables_(tbls)
 
     best <- list(iv=-Inf, tbls=NULL, i=NULL)
     for (i in seq_along(tbls)) {
 
-      k <- find_best_split_index_(tbls[[i]], min.cnt=min.cnt, min.res=min.res, mono=mono)
-
+      ## check if bin was already evaluated, if so use old value
+      if (is.null(attr(tbls[[i]], "k"))) {
+        k <- find_best_split_index_(tbls[[i]], min.cnt=min.cnt, min.res=min.res, mono=mono)
+      } else {
+        k <- attr(tbls[[i]], "k")
+      }
+  
       ## If a valid split was found
       if (k > 0) {
 
         ## if k is negative, ignore the split, otherwise evaluate the mkiv
         zs <- split_at_index_(tbls[[i]], k)
         iv <- iv_list_of_tables_(c(zs, tbls[-i]))
-
+        
+        attr(tbls[[i]], "k") <<- k
+        
         if (iv - iv_current > iv.inc.min) {
-
           if (iv > best$iv) {
             best <- list(iv=iv, tbls=zs, i=i)
           }
         }
       }
-
     }
-
+    
     ## check if best is null or not
     if (is.null(best$tbls)) {
       same <<- TRUE
@@ -192,13 +198,11 @@ Box$methods(pack = function(iv.dec.max=0.0005) {
         current_iv <- iv
       }
     }
-
 })
 
 
-Box$methods(bento = function(iv.inc.min=0.001, iv.dec.max=0.0005, min.cnt=25, min.res=10, mono=0, max.bin=10) {
-
-
+Box$methods(bento = function(iv.inc.min=0.001, iv.dec.max=0.0005, min.cnt=25, min.res=10, mono=0, max.bin=10, eps=1.1) {
+  
   while(!same) { ## no longer changing
     ## record what bins look like here?
     old <- tbls
@@ -216,59 +220,44 @@ Box$methods(bento = function(iv.inc.min=0.001, iv.dec.max=0.0005, min.cnt=25, mi
 
   } else {
     same <<- FALSE
-    bento(iv.inc.min = iv.inc.min, iv.dec.max = iv.dec.max * 1.1, min.cnt=min.cnt, min.res=min.res, mono=mono, max.bin=max.bin)
+    bento(iv.inc.min = iv.inc.min, iv.dec.max = iv.dec.max * eps, min.cnt=min.cnt, min.res=min.res, mono=mono, max.bin=max.bin)
   }
 
 })
+
+compiler::enableJIT(1)
 
 
 data(titanic, package="onyx")
 x <- titanic$Age
 y <- titanic$Survived
 
-b <- Box(x, y)
+
+b <- Box(mtcars$disp, as.integer(mtcars$mpg > 20))
 b$tabulate(eps = 0.01)
-
 ## make this faster with caching
-b$bento(iv.inc.min = 0.001, iv.dec.max = 0.0005, min.cnt = 10, min.res = 5, mono = 0, max.bin = 5)
-
-
-# b$breaks()
-
-b2 <- onyx::bin(data.frame(x), y, min.cnt = 10, min.res = 5, mono = 0, max.bin = 5)
-b2$variables$x$summary()['IV']
-
-## bounce back between crack and packing until under max.bins
-## TODO: add drop=False everywhere
-## TODO: add ability
-
+b$bento(iv.inc.min = 0.001, iv.dec.max = 0.0005, min.cnt = 5, min.res = 2, mono = 0, max.bin = 5, eps=1.01)
 res <- b$show()
-ps <- apply(res, 2, pct_)
-barplot(woe_(ps[,1], ps[,2]), horiz = TRUE)
-b2$variables$x$plot()
-## create a list of boxes
 
-b2$variables$x$show()
-res[,2]/rowSums(res)
+sum(res)
+val <- rbind(
+  res, table(is.na(x), y)[2,]
+)
 
-
-
-b$get_breaks
+library(onyx)
+b2 <- bin(data.frame(x), y, min.cnt = 10, min.res = 5, mono = 0, max.bin = 5)
 
 
+x <- scale(titanic$Fare)
 
-
+vs <- sapply(seq.int(1:6), function(i) sum(aggregate(x~SibSp < i, titanic, var)[,2]))
 
 
 
-# b$vals
-# cbind(b$vals, b$tbls[[1]])
-
-
-b$get_breaks()
+mtcars$mpg
 
 
 
-res <- b$show()
-row.names(res) <- b$make_labels()
+
+
 
