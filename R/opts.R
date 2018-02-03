@@ -5,8 +5,8 @@ validate <- function(opts) UseMethod("validate")
 validate.iv_opts <- function(opts) {
 
   defaults <- list(
-    iv.inc.min = 0.001,
-    iv.dec.max = 0.0005,
+    metric.inc.min = 0.001,
+    metric.dec.max = 0.0005,
     min.cnt    = 25,
     min.res    = 10,
     mono       = 0,
@@ -16,11 +16,11 @@ validate.iv_opts <- function(opts) {
   )
 
   ## create a list of defaults and modify it with the passed in options
-  structure(modifyList(defaults, opts), class="iv_opts")
+  structure(modifyList(defaults, opts), class=c("iv_opts", "opts"))
 
 }
 
-setOldClass(Classes = "iv_opts")
+setOldClass(Classes = c("iv_opts", "var_opts", "opts"))
 
 #' @export
 discretizer_options <- function(type=c("iv","var"), ...) {

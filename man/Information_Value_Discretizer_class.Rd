@@ -8,15 +8,8 @@
 \section{Methods}{
 
 \describe{
-\item{\code{fit(x, y)}}{Discretize a numeric variable using information value
-  \subsection{Parameters}{
-    \itemize{
-      \item{\code{x} numeric field to discretize.}
-      \item{\code{y} factor with 2 levels used to guide discretization.}
-    }
-  }
-  \subsection{Value}{
-    Modifies the object in place to generate break intervals.
-  }}
+\item{\code{metric_(z)}}{Metric calculated on a summary table of x and y}
+
+\item{\code{metric_list_of_tables_(l)}}{Metric calculated on a list of tables}
 }}
 

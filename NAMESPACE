@@ -2,5 +2,6 @@
 
 export(Information_Value_Discretizer)
 export(discretizer_options)
+exportClasses(Discretizer)
 importFrom(Rcpp,sourceCpp)
 useDynLib(bento)

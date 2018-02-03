@@ -4,10 +4,11 @@ x <- titanic$Fare
 y <- titanic$Survived
 
 
-opts <- discretizer_options("iv", max.bin=12, mono=1,  min.res=10, min.cnt=25, epsilon=0.01)
+opts <- discretizer_options("iv", max.bin=20, mono=-1,  min.res=1, min.cnt=5, epsilon=0.01)
 disc <- Information_Value_Discretizer$new(opts)
 
-x <- titanic$Age
+#x <- rep(titanic$Age, 1e3)
+#y <- rep(titanic$Survived, 1e3)
 disc$fit(x, y)
 disc$breaks
 

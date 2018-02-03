@@ -13,8 +13,9 @@ Suggests:
     testthat
 Collate:
     'RcppExports.R'
-    'imports.R'
     'opts.R'
+    'discretizer_class.R'
+    'imports.R'
     'iv_discretizer.R'
     'iv_discretizer_internal.R'
 LinkingTo: Rcpp
